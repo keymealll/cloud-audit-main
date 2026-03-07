@@ -1,0 +1,30 @@
+# gcp-auditor configuration file
+# Copy to .gcp-auditor.yml and customize.
+
+# GCP project ID (optional — uses default if not set)
+# project: my-project-id
+
+# Regions to scan (default: all enabled regions)
+# regions:
+#   - us-central1
+#   - europe-west1
+
+# Minimum severity to report: critical, high, medium, low, info
+# min_severity: medium
+
+# Checks to skip entirely (no API calls made)
+# exclude_checks:
+#   - gcp-storage-005   # Lifecycle policies (managed by org policy)
+#   - gcp-compute-005   # Unattached disks (we manage these separately)
+
+# Suppressions: accepted findings with audit trail
+# suppressions:
+#   - check_id: gcp-firewall-001
+#     resource_id: my-allowed-rule
+#     reason: "Intentionally open for load balancer health checks"
+#     accepted_by: "admin@example.com"
+#     expires: "2026-06-01"  # last day suppression is active (inclusive)
+#
+#   - check_id: gcp-storage-003
+#     reason: "Versioning handled by replication policy"
+#     accepted_by: "team-lead"

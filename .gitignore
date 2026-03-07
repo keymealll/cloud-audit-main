@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Type checking
+.mypy_cache/
+
+# Linting
+.ruff_cache/
+
+# Reports (generated output, not source)
+*.html
+!src/cloud_audit/reports/templates/*.html.j2
+
+# Internal / local-only .md files (never push) — allowlist specific docs below
+*.md
+!CODE_OF_CONDUCT.md
+!README.md
+!CONTRIBUTING.md
+!SECURITY.md
+!CHANGELOG.md
+!ROADMAP.md
+
+# Demo recording
+demo.tape
+
+# Test infrastructure
+terraform/
+
+# OS
+.DS_Store
+Thumbs.db
