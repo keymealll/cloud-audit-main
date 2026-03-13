@@ -13,8 +13,6 @@
 
 ## Why cloud-audit?
 
-59% of cloud security teams receive **500+ alerts daily**. 55% admit to **missing critical ones**. Most scanners make this worse, not better. cloud-audit takes a different approach:
-
 - **Curated, high-signal checks** - every check catches something an attacker would actually exploit
 - **Every finding = copy-paste fix** - `gcloud` CLI command + Terraform HCL + docs link, ready to go
 - **12 seconds, not 12 minutes** - scan completes before your coffee gets cold
@@ -108,7 +106,7 @@ The health score starts at 100 and decreases based on findings:
 
 ```bash
 # Clone and install in development mode
-git clone https://github.com/gebalamariusz/cloud-audit.git
+git clone https://github.com/keymealll/cloud-audit-main.git
 cd cloud-audit
 pip install -e ".[dev]"
 
@@ -125,4 +123,4 @@ mypy src/
 
 ## License
 
-[MIT](LICENSE) - Mariusz Gebala / [HAIT](https://haitmg.pl)
+[MIT](LICENSE) - Abdullah Kamil
