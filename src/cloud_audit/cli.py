@@ -1,7 +1,7 @@
 """CLI interface for cloud-audit."""
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 from rich.console import Console
@@ -69,10 +69,8 @@ def _print_summary(report: ScanReport) -> None:
 
         # Common fix suggestions
         console.print("[bold]Common fixes:[/bold]")
-        console.print("  1. Check your AWS credentials: [cyan]aws sts get-caller-identity[/cyan]")
-        console.print("  2. Refresh expired token: [cyan]aws sso login --profile <name>[/cyan]")
-        console.print("  3. Verify region: [cyan]cloud-audit scan --regions eu-central-1[/cyan]")
-        console.print("  4. Use a specific profile: [cyan]cloud-audit scan --profile <name>[/cyan]")
+        console.print("  1. Check your GCP credentials: [cyan]gcloud auth application-default login[/cyan]")
+        console.print("  2. Verify project: [cyan]cloud-audit scan --project my-gcp-project[/cyan]")
         return
 
     # Score panel
@@ -99,8 +97,7 @@ def _print_summary(report: ScanReport) -> None:
     table.add_column(style="dim")
     table.add_column()
     table.add_row("Provider", report.provider.upper())
-    table.add_row("Account", report.account_id or "unknown")
-    table.add_row("Regions", ", ".join(report.regions) if report.regions else "default")
+    table.add_row("Project", report.account_id or "unknown")
     table.add_row("Duration", f"{report.duration_seconds}s")
     table.add_row("Resources scanned", str(s.resources_scanned))
     table.add_row("Checks passed", f"[green]{s.checks_passed}[/green]")
@@ -138,7 +135,7 @@ def _print_summary(report: ScanReport) -> None:
 
         findings_table = Table(box=None, padding=(0, 1), show_header=True, header_style="bold")
         findings_table.add_column("Sev", width=8)
-        findings_table.add_column("Region", width=14)
+        findings_table.add_column("Location", width=14)
         findings_table.add_column("Check")
         findings_table.add_column("Resource")
         findings_table.add_column("Title", max_width=60)
@@ -244,18 +241,17 @@ def _export_fixes(findings: list[Finding], output_path: Path) -> None:
 
 @app.command()
 def scan(
-    provider: Annotated[str, typer.Option("--provider", "-p", help="Cloud provider")] = "aws",
-    profile: Annotated[str | None, typer.Option("--profile", help="AWS profile name")] = None,
-    regions: Annotated[str | None, typer.Option("--regions", "-r", help="Comma-separated regions, or 'all'")] = None,
+    provider: Annotated[str, typer.Option("--provider", "-p", help="Cloud provider")] = "gcp",
+    project: Annotated[Optional[str], typer.Option("--project", help="GCP project ID")] = None,
     categories: Annotated[
-        str | None, typer.Option("--categories", "-c", help="Filter: security,cost,reliability")
+        Optional[str], typer.Option("--categories", "-c", help="Filter: security,cost,reliability")
     ] = None,
-    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file path (.html, .json)")] = None,
+    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Output file path (.html, .json)")] = None,
     remediation: Annotated[
         bool, typer.Option("--remediation", "-R", help="Show remediation details for findings")
     ] = False,
     export_fixes: Annotated[
-        Path | None, typer.Option("--export-fixes", help="Export CLI fix commands as bash script")
+        Optional[Path], typer.Option("--export-fixes", help="Export CLI fix commands as bash script")
     ] = None,
 ) -> None:
     """Scan cloud infrastructure and generate an audit report."""
@@ -265,12 +261,12 @@ def scan(
     category_list = [c.strip() for c in categories.split(",")] if categories else None
 
     # Initialize provider
-    if provider == "aws":
-        from cloud_audit.providers.aws import AWSProvider
+    if provider == "gcp":
+        from cloud_audit.providers.gcp.provider import GCPProvider
 
-        cloud_provider = AWSProvider(profile=profile, regions=region_list)
+        cloud_provider = GCPProvider(project=project)
     else:
-        console.print(f"[red]Provider '{provider}' is not supported yet. Available: aws[/red]")
+        console.print(f"[red]Provider '{provider}' is not supported yet. Available: gcp[/red]")
         raise typer.Exit(1)
 
     # Run scan
@@ -306,7 +302,7 @@ def scan(
 
 @app.command()
 def demo() -> None:
-    """Show a demo scan with sample output (no AWS credentials needed)."""
+    """Show a demo scan with sample output (no GCP credentials needed)."""
     import time
 
     from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
@@ -315,7 +311,7 @@ def demo() -> None:
 
     # Simulate progress bar
     with Progress(
-        TextColumn("[bold]Running 17 checks on AWS..."),
+        TextColumn("[bold]Running 17 checks on GCP..."),
         BarColumn(bar_width=40),
         TextColumn("{task.completed}/{task.total}"),
         TimeElapsedColumn(),
@@ -341,9 +337,8 @@ def demo() -> None:
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column(style="dim")
     table.add_column()
-    table.add_row("Provider", "AWS")
-    table.add_row("Account", "123456789012")
-    table.add_row("Regions", "eu-central-1")
+    table.add_row("Provider", "GCP")
+    table.add_row("Project", "my-gcp-project-123")
     table.add_row("Duration", "12s")
     table.add_row("Resources scanned", "147")
     table.add_row("Checks passed", "[green]11[/green]")
@@ -369,37 +364,30 @@ def demo() -> None:
     ft.add_row(
         "[bold red]CRITICAL[/bold red]",
         "[dim]global[/dim]",
-        "aws-iam-001",
-        "arn:aws:iam::1234...:root",
-        "Root account without MFA enabled",
+        "gcp-iam-001",
+        "projects/my-gcp-project-123/serviceAccounts/default",
+        "Default compute service account has Editor role",
     )
     ft.add_row(
         "[bold red]CRITICAL[/bold red]",
-        "[dim]eu-central-1[/dim]",
-        "aws-vpc-002",
-        "sg-0a1b2c3d4e5f67890",
-        "SG open to 0.0.0.0/0 on port 22",
-    )
-    ft.add_row(
-        "[red]HIGH[/red]",
-        "[dim]eu-central-1[/dim]",
-        "aws-rds-001",
-        "production-db",
-        "RDS instance is publicly accessible",
+        "[dim]us-central1[/dim]",
+        "gcp-compute-002",
+        "projects/my-gcp-project-123/zones/us-central1-a/instances/web",
+        "Compute instance has a public IP",
     )
     ft.add_row(
         "[red]HIGH[/red]",
         "[dim]global[/dim]",
-        "aws-s3-001",
-        "company-backups-2024",
-        "S3 public access block disabled",
+        "gcp-storage-001",
+        "projects/my-gcp-project-123/buckets/company-data",
+        "Storage bucket does not enforce uniform bucket-level access",
     )
     ft.add_row(
         "[yellow]MEDIUM[/yellow]",
         "[dim]global[/dim]",
-        "aws-iam-003",
-        "deploy-key-AKIA...",
-        "Access key 347 days old (limit: 90)",
+        "gcp-iam-002",
+        "projects/my-gcp-project-123/serviceAccounts/deployer/keys/key1",
+        "User-managed service account key 347 days old (limit: 90)",
     )
     console.print(ft)
 
@@ -408,34 +396,23 @@ def demo() -> None:
     # Remediation preview
     console.print("\n[bold]Remediation details (2 of 6 actionable findings):[/bold]\n")
 
-    console.print("  [bold red]CRITICAL[/bold red]  Root account without MFA enabled")
-    console.print("  [dim]Resource:[/dim]   arn:aws:iam::123456789012:root")
-    console.print("  [dim]Compliance:[/dim] CIS 1.5")
-    console.print("  [dim]Effort:[/dim]     [green]LOW[/green]")
-    mfa_cli = "aws iam create-virtual-mfa-device --virtual-mfa-device-name root-mfa"
-    console.print(f"  [dim]CLI:[/dim]        [cyan]{mfa_cli}[/cyan]")
-    console.print('  [dim]Terraform:[/dim]  resource "aws_iam_virtual_mfa_device" "root" { ... }')
-    mfa_docs = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html"
-    console.print(f"  [dim]Docs:[/dim]       {mfa_docs}")
-    console.print()
-
-    console.print("  [bold red]CRITICAL[/bold red]  Security group open to 0.0.0.0/0 on port 22")
-    console.print("  [dim]Resource:[/dim]   sg-0a1b2c3d4e5f67890")
-    console.print("  [dim]Compliance:[/dim] CIS 5.2")
+    console.print("  [bold red]CRITICAL[/bold red]  Compute instance has a public IP")
+    console.print("  [dim]Resource:[/dim]   projects/my-gcp-project-123/zones/us-central1-a/instances/web")
+    console.print("  [dim]Compliance:[/dim] CIS 4.8")
     console.print("  [dim]Effort:[/dim]     [green]LOW[/green]")
     sg_cli = (
-        "aws ec2 revoke-security-group-ingress"
-        " --group-id sg-0a1b2c3d4e5f67890"
-        " --protocol tcp --port 22 --cidr 0.0.0.0/0"
+        "gcloud compute instances delete-access-config web"
+        " --zone=us-central1-a"
+        " --access-config-name=\"External NAT\""
     )
     console.print(f"  [dim]CLI:[/dim]        [cyan]{sg_cli}[/cyan]")
-    console.print('  [dim]Terraform:[/dim]  resource "aws_security_group_rule" "ssh" { ... }')
-    sg_docs = "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+    console.print('  [dim]Terraform:[/dim]  Remove "access_config" block from google_compute_instance')
+    sg_docs = "https://cloud.google.com/compute/docs/ip-addresses/reserve-static-external-ip-address"
     console.print(f"  [dim]Docs:[/dim]       {sg_docs}")
     console.print()
 
     console.print(
-        "[dim]This is sample output. Run [bold]cloud-audit scan[/bold] with AWS credentials for a real scan.[/dim]"
+        "[dim]This is sample output. Run [bold]cloud-audit scan[/bold] with GCP credentials for a real scan.[/dim]"
     )
 
 

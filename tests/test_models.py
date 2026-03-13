@@ -17,7 +17,7 @@ def test_finding_creation():
         title="Test finding",
         severity=Severity.HIGH,
         category=Category.SECURITY,
-        resource_type="AWS::S3::Bucket",
+        resource_type="google_storage_bucket",
         resource_id="my-bucket",
         description="Something is wrong",
         recommendation="Fix it",
@@ -33,7 +33,7 @@ def test_check_result_empty():
 
 
 def test_scan_report_compute_summary():
-    report = ScanReport(provider="aws")
+    report = ScanReport(provider="gcp")
     report.results = [
         CheckResult(
             check_id="test-001",
@@ -50,7 +50,7 @@ def test_scan_report_compute_summary():
                     title="Critical issue",
                     severity=Severity.CRITICAL,
                     category=Category.SECURITY,
-                    resource_type="AWS::EC2::Instance",
+                    resource_type="google_compute_instance",
                     resource_id="i-123",
                     description="Bad",
                     recommendation="Fix",
@@ -60,7 +60,7 @@ def test_scan_report_compute_summary():
                     title="Low issue",
                     severity=Severity.LOW,
                     category=Category.COST,
-                    resource_type="AWS::EC2::EIP",
+                    resource_type="google_compute_address",
                     resource_id="eip-456",
                     description="Wasted money",
                     recommendation="Release",
@@ -83,7 +83,7 @@ def test_scan_report_compute_summary():
 
 
 def test_scan_report_perfect_score():
-    report = ScanReport(provider="aws")
+    report = ScanReport(provider="gcp")
     report.results = [
         CheckResult(check_id="test-001", check_name="All good", resources_scanned=10),
     ]
@@ -94,9 +94,9 @@ def test_scan_report_perfect_score():
 
 def test_finding_with_remediation():
     r = Remediation(
-        cli="aws s3api put-public-access-block --bucket test-bucket ...",
-        terraform='resource "aws_s3_bucket_public_access_block" "example" { bucket = "test-bucket" }',
-        doc_url="https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+        cli="gcloud compute instances delete-access-config ...",
+        terraform='resource "google_compute_instance" "example" { ... }',
+        doc_url="https://cloud.google.com/compute/docs",
         effort=Effort.LOW,
     )
     f = Finding(
@@ -104,16 +104,16 @@ def test_finding_with_remediation():
         title="Test",
         severity=Severity.HIGH,
         category=Category.SECURITY,
-        resource_type="AWS::S3::Bucket",
-        resource_id="test-bucket",
-        description="Public bucket",
-        recommendation="Block public access",
+        resource_type="google_compute_instance",
+        resource_id="test-instance",
+        description="Public IP",
+        recommendation="Remove public IP",
         remediation=r,
-        compliance_refs=["CIS 2.1.5"],
+        compliance_refs=["CIS GCP 4.8"],
     )
     assert f.remediation is not None
     assert f.remediation.effort == Effort.LOW
-    assert f.compliance_refs == ["CIS 2.1.5"]
+    assert f.compliance_refs == ["CIS GCP 4.8"]
 
 
 def test_finding_without_remediation():
@@ -123,7 +123,7 @@ def test_finding_without_remediation():
         title="Test",
         severity=Severity.LOW,
         category=Category.COST,
-        resource_type="AWS::EC2::EIP",
+        resource_type="google_compute_address",
         resource_id="eip-123",
         description="Unused",
         recommendation="Release",

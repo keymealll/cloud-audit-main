@@ -18,7 +18,7 @@ from cloud_audit.models import (
 
 def _make_finding(
     *,
-    check_id: str = "aws-test-001",
+    check_id: str = "gcp-test-001",
     severity: Severity = Severity.HIGH,
     with_remediation: bool = True,
 ) -> Finding:
@@ -26,41 +26,42 @@ def _make_finding(
     remediation = None
     if with_remediation:
         cli_cmd = (
-            "aws s3api put-public-access-block --bucket test-bucket"
-            " --public-access-block-configuration BlockPublicAcls=true"
+            "gcloud compute instances delete-access-config test-instance"
+            " --zone=us-central1-a"
+            " --access-config-name=\"External NAT\""
         )
-        tf_snippet = 'resource "aws_s3_bucket_public_access_block" "example" {\n  bucket = aws_s3_bucket.example.id\n}'
+        tf_snippet = 'resource "google_compute_instance" "example" {\n  # remove access_config\n}'
         remediation = Remediation(
             cli=cli_cmd,
             terraform=tf_snippet,
-            doc_url="https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+            doc_url="https://cloud.google.com/compute/docs",
             effort=Effort.LOW,
         )
     return Finding(
         check_id=check_id,
-        title="Test bucket without public access block",
+        title="Test instance has public IP",
         severity=severity,
         category=Category.SECURITY,
-        resource_type="AWS::S3::Bucket",
-        resource_id="test-bucket",
+        resource_type="google_compute_instance",
+        resource_id="test-instance",
         region="global",
-        description="Bucket does not have public access block enabled.",
-        recommendation="Enable public access block.",
+        description="Instance has a public IP address.",
+        recommendation="Remove public IP.",
         remediation=remediation,
-        compliance_refs=["CIS 2.1.5"] if with_remediation else [],
+        compliance_refs=["CIS GCP 4.8"] if with_remediation else [],
     )
 
 
 def _make_report(findings: list[Finding]) -> ScanReport:
     """Create a minimal ScanReport with given findings."""
     report = ScanReport(
-        provider="aws",
-        account_id="123456789012",
-        regions=["eu-central-1"],
+        provider="gcp",
+        account_id="my-gcp-project",
+        regions=["global"],
     )
     report.results.append(
         CheckResult(
-            check_id="aws-test-001",
+            check_id="gcp-test-001",
             check_name="Test Check",
             findings=findings,
             resources_scanned=len(findings),
@@ -105,18 +106,18 @@ def test_export_fixes_creates_script(tmp_path: Path) -> None:
     assert "DRY RUN" in content
 
     # Finding details
-    assert "test-bucket" in content
-    assert "CIS 2.1.5" in content
+    assert "test-instance" in content
+    assert "CIS GCP 4.8" in content
 
     # CLI command is commented out
-    assert "# aws s3api put-public-access-block" in content
+    assert "# gcloud compute instances delete-access-config test-instance" in content
 
 
 def test_export_fixes_multiple_findings(tmp_path: Path) -> None:
     """Multiple findings are all included in the script."""
     findings = [
-        _make_finding(check_id="aws-test-001", severity=Severity.CRITICAL),
-        _make_finding(check_id="aws-test-002", severity=Severity.LOW),
+        _make_finding(check_id="gcp-test-001", severity=Severity.CRITICAL),
+        _make_finding(check_id="gcp-test-002", severity=Severity.LOW),
     ]
     output_path = tmp_path / "fixes.sh"
 

@@ -1,9 +1,9 @@
 """Core data models for cloud-audit findings and reports."""
 
-from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -34,9 +34,9 @@ class Effort(str, Enum):
 class Remediation(BaseModel):
     """Remediation details for a finding - CLI command, Terraform HCL, and docs link."""
 
-    cli: str = Field(description="AWS CLI command (copy-paste ready)")
+    cli: str = Field(description="CLI command (copy-paste ready)")
     terraform: str = Field(description="Terraform HCL snippet")
-    doc_url: str = Field(description="Link to AWS documentation")
+    doc_url: str = Field(description="Link to documentation")
     effort: Effort = Field(description="Estimated remediation effort")
 
 
@@ -60,16 +60,16 @@ SEVERITY_WEIGHT = {
 class Finding(BaseModel):
     """A single audit finding - one issue detected in the infrastructure."""
 
-    check_id: str = Field(description="Unique check identifier, e.g. 'aws-iam-001'")
+    check_id: str = Field(description="Unique check identifier, e.g. 'gcp-iam-001'")
     title: str = Field(description="Short human-readable title")
     severity: Severity
     category: Category
-    resource_type: str = Field(description="AWS resource type, e.g. 'AWS::IAM::User'")
+    resource_type: str = Field(description="Resource type, e.g. 'google_compute_instance'")
     resource_id: str = Field(description="Resource identifier (ARN, ID, or name)")
     region: str = Field(default="global")
     description: str = Field(description="What is wrong")
     recommendation: str = Field(description="How to fix it")
-    remediation: Remediation | None = Field(default=None, description="Structured remediation details")
+    remediation: Optional["Remediation"] = Field(default=None, description="Structured remediation details")
     compliance_refs: list[str] = Field(default_factory=list, description="Compliance references, e.g. ['CIS 1.5']")
 
 
@@ -80,7 +80,7 @@ class CheckResult(BaseModel):
     check_name: str
     findings: list[Finding] = Field(default_factory=list)
     resources_scanned: int = 0
-    error: str | None = None
+    error: Optional[str] = None
 
 
 class ScanSummary(BaseModel):

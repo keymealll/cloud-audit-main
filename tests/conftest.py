@@ -3,31 +3,28 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
-from moto import mock_aws
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from cloud_audit.providers.aws.provider import AWSProvider
+    from cloud_audit.providers.gcp.provider import GCPProvider
 
 
 @pytest.fixture()
-def aws_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Set dummy AWS credentials for moto."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
-
-
-@pytest.fixture()
-def mock_aws_provider(aws_env: None) -> Generator[AWSProvider, None, None]:
-    """Create a real AWSProvider backed by moto's mock AWS services."""
-    with mock_aws():
-        from cloud_audit.providers.aws.provider import AWSProvider
-
-        provider = AWSProvider(regions=["eu-central-1"])
-        yield provider
+def mock_gcp_provider(monkeypatch: pytest.MonkeyPatch) -> Generator[GCPProvider, None, None]:
+    """Create a mocked GCPProvider."""
+    # Patch default credentials to avoid actual GCP auth during tests
+    monkeypatch.setattr("google.auth.default", lambda: (MagicMock(), "my-gcp-project"))
+    
+    from cloud_audit.providers.gcp.provider import GCPProvider
+    
+    provider = GCPProvider(project="my-gcp-project")
+    
+    # We could also mock the get_client to return a MagicMock here if we wanted
+    # to do more extensive unit testing of checks in the future.
+    provider.get_client = MagicMock()
+    
+    yield provider

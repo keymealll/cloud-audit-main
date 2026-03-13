@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 # A check is a callable that returns a CheckResult
 CheckFn = Any  # Callable[[], CheckResult] - simplified for Python 3.10 compat
@@ -17,7 +17,7 @@ class BaseProvider(ABC):
         """Return the account/subscription identifier."""
 
     @abstractmethod
-    def get_checks(self, categories: list[str] | None = None) -> list[CheckFn]:
+    def get_checks(self, categories: Optional[list[str]] = None) -> list[CheckFn]:
         """Return list of check functions to execute.
 
         Args:
