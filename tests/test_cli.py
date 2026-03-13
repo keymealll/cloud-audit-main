@@ -28,7 +28,7 @@ def _make_finding(
         cli_cmd = (
             "gcloud compute instances delete-access-config test-instance"
             " --zone=us-central1-a"
-            " --access-config-name=\"External NAT\""
+            ' --access-config-name="External NAT"'
         )
         tf_snippet = 'resource "google_compute_instance" "example" {\n  # remove access_config\n}'
         remediation = Remediation(

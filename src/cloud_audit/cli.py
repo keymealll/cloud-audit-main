@@ -257,7 +257,6 @@ def scan(
     """Scan cloud infrastructure and generate an audit report."""
     from cloud_audit.scanner import run_scan
 
-    region_list = [r.strip() for r in regions.split(",")] if regions else None
     category_list = [c.strip() for c in categories.split(",")] if categories else None
 
     # Initialize provider
@@ -401,9 +400,7 @@ def demo() -> None:
     console.print("  [dim]Compliance:[/dim] CIS 4.8")
     console.print("  [dim]Effort:[/dim]     [green]LOW[/green]")
     sg_cli = (
-        "gcloud compute instances delete-access-config web"
-        " --zone=us-central1-a"
-        " --access-config-name=\"External NAT\""
+        'gcloud compute instances delete-access-config web --zone=us-central1-a --access-config-name="External NAT"'
     )
     console.print(f"  [dim]CLI:[/dim]        [cyan]{sg_cli}[/cyan]")
     console.print('  [dim]Terraform:[/dim]  Remove "access_config" block from google_compute_instance')

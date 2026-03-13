@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 console = Console()
 
 
-def run_scan(provider: BaseProvider, categories: Optional[list[str]] = None) -> ScanReport:
+def run_scan(provider: BaseProvider, categories: list[str] | None = None) -> ScanReport:
     """Execute all checks for the given provider and return a ScanReport."""
     report = ScanReport(provider=provider.get_provider_name())
 

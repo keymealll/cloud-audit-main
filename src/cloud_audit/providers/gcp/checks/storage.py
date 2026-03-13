@@ -1,6 +1,7 @@
 """GCP Storage checks."""
 
 from typing import TYPE_CHECKING
+
 from cloud_audit.models import Category, CheckResult, Effort, Finding, Remediation, Severity
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ def gcp_storage_001(provider: "GCPProvider") -> CheckResult:
             for bucket in buckets:
                 result.resources_scanned += 1
                 bucket_name = bucket.get("name")
-                
+
                 # Check for uniform bucket-level access
                 iam_config = bucket.get("iamConfiguration", {})
                 ubla = iam_config.get("uniformBucketLevelAccess", {}).get("enabled", False)

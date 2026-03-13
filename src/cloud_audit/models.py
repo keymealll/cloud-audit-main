@@ -1,6 +1,5 @@
 """Core data models for cloud-audit findings and reports."""
 
-
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional

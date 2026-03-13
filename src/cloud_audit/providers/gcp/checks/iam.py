@@ -2,6 +2,7 @@
 
 import datetime
 from typing import TYPE_CHECKING
+
 from cloud_audit.models import Category, CheckResult, Effort, Finding, Remediation, Severity
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ def gcp_iam_001(provider: "GCPProvider") -> CheckResult:
 
                 if email.endswith("-compute@developer.gserviceaccount.com"):
                     cli = f"gcloud iam service-accounts disable {email}"
-                    tf = f'resource "google_service_account" "default" {{\n  account_id = "..."\n  # Avoid using default SA\n}}'
+                    tf = 'resource "google_service_account" "default" {\n  account_id = "..."\n  # Avoid using default SA\n}'
                     docs = "https://cloud.google.com/iam/docs/service-accounts#default"
 
                     result.findings.append(
@@ -56,7 +57,9 @@ def gcp_iam_001(provider: "GCPProvider") -> CheckResult:
                         )
                     )
 
-            request = client.projects().serviceAccounts().list_next(previous_request=request, previous_response=response)
+            request = (
+                client.projects().serviceAccounts().list_next(previous_request=request, previous_response=response)
+            )
     except Exception as e:
         result.error = f"Failed to check IAM service accounts: {str(e)}"
     return result
@@ -82,18 +85,15 @@ def gcp_iam_002(provider: "GCPProvider") -> CheckResult:
                 sa_name = sa.get("name", "")
 
                 # Now get keys for this SA
-                keys_request = client.projects().serviceAccounts().keys().list(
-                    name=sa_name,
-                    keyTypes=["USER_MANAGED"]
-                )
+                keys_request = client.projects().serviceAccounts().keys().list(name=sa_name, keyTypes=["USER_MANAGED"])
                 keys_response = keys_request.execute()
                 keys = keys_response.get("keys", [])
-                
+
                 for key in keys:
                     result.resources_scanned += 1
                     key_name = key.get("name", "")
                     valid_after = key.get("validAfterTime", "")
-                    
+
                     if valid_after:
                         # parse 2024-03-12T10:00:00Z
                         valid_after_dt = datetime.datetime.fromisoformat(valid_after.replace("Z", "+00:00"))
@@ -102,7 +102,7 @@ def gcp_iam_002(provider: "GCPProvider") -> CheckResult:
 
                         if age_days > 90:
                             cli = f"gcloud iam service-accounts keys delete {key_name.split('/')[-1]} --iam-account={email}"
-                            tf = f'resource "google_service_account_key" "mykey" {{ ... }}\n# Rotate keys periodically'
+                            tf = 'resource "google_service_account_key" "mykey" { ... }\n# Rotate keys periodically'
                             docs = "https://cloud.google.com/iam/docs/creating-managing-service-account-keys"
 
                             result.findings.append(
@@ -126,7 +126,9 @@ def gcp_iam_002(provider: "GCPProvider") -> CheckResult:
                                 )
                             )
 
-            request = client.projects().serviceAccounts().list_next(previous_request=request, previous_response=response)
+            request = (
+                client.projects().serviceAccounts().list_next(previous_request=request, previous_response=response)
+            )
     except Exception as e:
         result.error = f"Failed to check IAM service account keys: {str(e)}"
     return result

@@ -1,6 +1,7 @@
 """GCP Compute checks."""
 
 from typing import TYPE_CHECKING
+
 from cloud_audit.models import Category, CheckResult, Effort, Finding, Remediation, Severity
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ def gcp_compute_001(provider: "GCPProvider") -> CheckResult:
                     instance_name = instance.get("name", "")
                     zone_name = zone.split("/")[-1]
                     network_interfaces = instance.get("networkInterfaces", [])
-                    
+
                     has_public_ip = False
                     for ni in network_interfaces:
                         access_configs = ni.get("accessConfigs", [])
@@ -42,8 +43,8 @@ def gcp_compute_001(provider: "GCPProvider") -> CheckResult:
                             break
 
                     if has_public_ip:
-                        cli = f"gcloud compute instances delete-access-config {instance_name} --zone={zone_name} --access-config-name=\"External NAT\""
-                        tf = f'resource "google_compute_instance" "default" {{\n  # Remove access_config block from network_interface\n}}'
+                        cli = f'gcloud compute instances delete-access-config {instance_name} --zone={zone_name} --access-config-name="External NAT"'
+                        tf = 'resource "google_compute_instance" "default" {\n  # Remove access_config block from network_interface\n}'
                         docs = "https://cloud.google.com/compute/docs/ip-addresses/reserve-static-external-ip-address"
 
                         result.findings.append(
@@ -71,5 +72,5 @@ def gcp_compute_001(provider: "GCPProvider") -> CheckResult:
 
     except Exception as e:
         result.error = f"Failed to check compute instances: {str(e)}"
-    
+
     return result
